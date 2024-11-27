@@ -9,18 +9,18 @@ const POWER_STATE_FILE: &str = "bn_state";
 fn check_battery(
     mut batteries: Batteries,
     serial: &String,
-    prev_value: u32,
+    prev_value: u8,
     power_state_path: PathBuf,
-    critical_percentage: &u32,
-    warn_percentage: Option<&u32>,
+    critical_percentage: &u8,
+    warn_percentage: Option<&u8>,
 ) {
     match batteries.find(|b| {
         b.as_ref()
             .is_ok_and(|f| f.serial_number().is_some_and(|f| serial.eq(f)))
     }) {
         Some(Ok(battery)) => {
-            let percentage = (battery.state_of_charge().value * 100.0).floor() as u32;
-            fs::write(power_state_path, u32::to_le_bytes(percentage))
+            let percentage = (battery.state_of_charge().value * 100.0).floor() as u8;
+            fs::write(power_state_path, u8::to_le_bytes(percentage))
                 .expect("Failed to write power value to file");
 
             if battery.time_to_full().is_some() {
@@ -61,12 +61,12 @@ fn main() {
         Arg::new("warn_percentage")
             .short('w')
             .help("When the battery drops below this level, send a warning notification.")
-            .value_parser(value_parser!(u32))
+            .value_parser(value_parser!(u8))
     ).arg(
         Arg::new("critical_percentage")
             .short('c')
             .help("When the battery drops below this level, send an urgent critical notification.")
-            .value_parser(value_parser!(u32))
+            .value_parser(value_parser!(u8))
     ).arg(
         Arg::new("serial")
             .short('s')
@@ -78,10 +78,10 @@ fn main() {
 
     let prev_value = fs::File::open(power_state_path.as_path())
         .and_then(|mut o| {
-            let buf = &mut [0; 4];
+            let buf = &mut [0; 1];
             o.read_exact(buf)
                 .expect("Unknown value in power state file");
-            Ok(u32::from_le_bytes(*buf))
+            Ok(u8::from_le_bytes(*buf))
         })
         .unwrap_or(100);
 
@@ -94,8 +94,8 @@ fn main() {
             battery_serial,
             prev_value,
             power_state_path,
-            args.get_one::<u32>("critical_percentage").expect("oh no"),
-            args.get_one::<u32>("warn_percentage"),
+            args.get_one::<u8>("critical_percentage").expect("oh no"),
+            args.get_one::<u8>("warn_percentage"),
         );
     } else {
         println!("No serial given, listing possible batteries");
