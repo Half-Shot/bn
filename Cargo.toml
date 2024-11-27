@@ -1,0 +1,9 @@
+[package]
+name = "bn"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+battery = "0.7.8"
+clap = { version = "4.5.21", features = ["derive"] }
+notify-rust = "4.11.3"
