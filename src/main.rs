@@ -57,16 +57,21 @@ fn check_battery(
 }
 
 fn main() {
-    // let args = Args::parse();
-
     let args = Command::new("bn").about("Simple application to notify when the battery drops too low.").arg(
-        Arg::new("warn_percentage").short('w').help("When the battery drops below this level, send a warning notification.")
-        .value_parser(value_parser!(u32))
+        Arg::new("warn_percentage")
+            .short('w')
+            .help("When the battery drops below this level, send a warning notification.")
+            .value_parser(value_parser!(u32))
     ).arg(
-        Arg::new("critical_percentage").short('c').help("When the battery drops below this level, send an urgent critical notification.")
-        .value_parser(value_parser!(u32))
+        Arg::new("critical_percentage")
+            .short('c')
+            .help("When the battery drops below this level, send an urgent critical notification.")
+            .value_parser(value_parser!(u32))
     ).arg(
-        Arg::new("serial").short('s').help("The serial number of the battery to check. If not provided, this command will list all batteries.").requires("critical_percentage")
+        Arg::new("serial")
+            .short('s')
+            .help("The serial number of the battery to check. If not provided, this command will list all batteries.")
+            .requires("critical_percentage")
     ).get_matches();
 
     let power_state_path = env::temp_dir().as_path().join(POWER_STATE_FILE);
