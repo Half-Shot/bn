@@ -1,0 +1,12 @@
+[Install]
+WantedBy=graphical-session.target
+
+[Service]
+ExecStart=/<path-to-bin>/target/release/bn -c 5 -w 15 -s WA
+Type=oneshot
+
+[Unit]
+After=graphical-session.target
+Description=Battery Notify
+Requires=graphical-session.target
+Wants=graphical-session.target
