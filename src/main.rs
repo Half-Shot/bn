@@ -1,33 +1,18 @@
 use std::{env, fs, io::Read, path::PathBuf, time::Duration};
 
 use battery::Batteries;
-use clap::Parser;
+use clap::{value_parser, Arg, Command};
 use notify_rust::{Notification, Urgency};
-
-/// Simple application to notify when the battery drops too low.
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
-    /// When the battery drops below this level, send a warning notification.
-    #[arg(short, long)]
-    warn_percentage: Option<u32>,
-    /// When the battery drops below this level, send an urgent critical notification.
-    #[arg(short, long)]
-    critical_percentage: u32,
-    /// The serial number of the battery to check. If not provided, this command will list all batteries.
-    #[arg(short, long)]
-    serial: Option<String>,
-}
 
 const POWER_STATE_FILE: &str = "bn_state";
 
 fn check_battery(
     mut batteries: Batteries,
-    serial: String,
+    serial: &String,
     prev_value: u32,
     power_state_path: PathBuf,
-    critical_percentage: u32,
-    warn_percentage: Option<u32>,
+    critical_percentage: &u32,
+    warn_percentage: Option<&u32>,
 ) {
     match batteries.find(|b| {
         b.as_ref()
@@ -44,7 +29,7 @@ fn check_battery(
 
             println!("prev: {:?}, curr: {:?}", prev_value, percentage);
 
-            if percentage <= critical_percentage && prev_value > critical_percentage {
+            if percentage <= *critical_percentage && prev_value > *critical_percentage {
                 Notification::new()
                     .summary("Battery level")
                     .body(format!("Battery level is CRITICAL ({:?}%)", percentage).as_str())
@@ -52,7 +37,7 @@ fn check_battery(
                     .hint(notify_rust::Hint::SoundName("battery-caution".to_string()))
                     .show()
                     .expect("Failed to show notif");
-            } else if warn_percentage.is_some_and(|f| percentage <= f && prev_value > f) {
+            } else if warn_percentage.is_some_and(|f| percentage <= *f && prev_value > *f) {
                 Notification::new()
                     .summary("Battery level")
                     .body(format!("Battery level is low ({:?}%)", percentage).as_str())
@@ -72,7 +57,17 @@ fn check_battery(
 }
 
 fn main() {
-    let args = Args::parse();
+    // let args = Args::parse();
+
+    let args = Command::new("bn").about("Simple application to notify when the battery drops too low.").arg(
+        Arg::new("warn_percentage").short('w').help("When the battery drops below this level, send a warning notification.")
+        .value_parser(value_parser!(u32))
+    ).arg(
+        Arg::new("critical_percentage").short('c').help("When the battery drops below this level, send an urgent critical notification.")
+        .value_parser(value_parser!(u32))
+    ).arg(
+        Arg::new("serial").short('s').help("The serial number of the battery to check. If not provided, this command will list all batteries.").requires("critical_percentage")
+    ).get_matches();
 
     let power_state_path = env::temp_dir().as_path().join(POWER_STATE_FILE);
 
@@ -88,14 +83,14 @@ fn main() {
     let manager = battery::Manager::new().expect("Unable to start battery manager");
     let batteries = manager.batteries().expect("Unable to read batteries");
 
-    if let Some(battery_serial) = args.serial {
+    if let Some(battery_serial) = args.get_one::<String>("serial") {
         check_battery(
             batteries,
             battery_serial,
             prev_value,
             power_state_path,
-            args.critical_percentage,
-            args.warn_percentage,
+            args.get_one::<u32>("critical_percentage").expect("oh no"),
+            args.get_one::<u32>("warn_percentage"),
         );
     } else {
         println!("No serial given, listing possible batteries");
